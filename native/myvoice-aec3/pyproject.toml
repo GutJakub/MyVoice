@@ -1,0 +1,16 @@
+[build-system]
+requires = ["scikit-build-core==1.0.3", "pybind11==3.1.0", "cmake==4.4.3", "ninja==1.13.2", "ziglang==0.16.0; sys_platform == 'linux'"]
+build-backend = "scikit_build_core.build"
+
+[project]
+name = "myvoice-aec3"
+version = "0.1.0"
+requires-python = ">=3.11,<3.12"
+dependencies = ["numpy>=2.2,<2.3"]
+description = "Small local WebRTC AEC3 adapter with linear and suppressed outputs"
+
+[tool.scikit-build]
+wheel.packages = []
+cmake.build-type = "Release"
+build.tool-args = ["-j4"]
+sdist.include = ["CMakeLists.txt", "aec3.cpp", "README.md", "vendor/*.tar.gz", "vendor/*LICENSE"]

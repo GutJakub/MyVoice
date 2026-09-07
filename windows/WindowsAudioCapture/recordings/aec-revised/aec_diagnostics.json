@@ -1,0 +1,118 @@
+{
+  "backend": "myvoice-aec3 / pywebrtc-audio 0.2.0 native source",
+  "delay_hint_ms": 0,
+  "selected_output": "linear",
+  "output_latency_compensated_samples": {
+    "linear": 64,
+    "suppressed": 128
+  },
+  "tail_samples_trimmed": {
+    "mic": 0,
+    "reference": 0
+  },
+  "aec3_metrics": {
+    "delay_ms": 156,
+    "echo_return_loss": 20.0,
+    "echo_return_loss_enhancement": 0.17551203072071075,
+    "reference_gain_db": 26.248901240744196
+  },
+  "processing_seconds": 0.10919567499513505,
+  "audio_seconds": 19.9181875,
+  "windows": [
+    {
+      "start_seconds": 0.0,
+      "end_seconds": 2.0,
+      "mic_rms": 0.0038178614768307074,
+      "cleaned_rms": 0.0027134096038897433,
+      "level_reduction_db": 2.966096181079813
+    },
+    {
+      "start_seconds": 2.0,
+      "end_seconds": 4.0,
+      "mic_rms": 0.002614603234599402,
+      "cleaned_rms": 0.002323393617064832,
+      "level_reduction_db": 1.0256600442645654
+    },
+    {
+      "start_seconds": 4.0,
+      "end_seconds": 6.0,
+      "mic_rms": 0.002490083389520144,
+      "cleaned_rms": 0.0017745583726444033,
+      "level_reduction_db": 2.942472031867304
+    },
+    {
+      "start_seconds": 6.0,
+      "end_seconds": 8.0,
+      "mic_rms": 0.0032980580451287193,
+      "cleaned_rms": 0.0020985985519869853,
+      "level_reduction_db": 3.9265785199968137
+    },
+    {
+      "start_seconds": 8.0,
+      "end_seconds": 10.0,
+      "mic_rms": 0.002394027696588405,
+      "cleaned_rms": 0.001424170478753746,
+      "level_reduction_db": 4.5113438262688925
+    },
+    {
+      "start_seconds": 10.0,
+      "end_seconds": 12.0,
+      "mic_rms": 0.03844569014286999,
+      "cleaned_rms": 0.036938210533692145,
+      "level_reduction_db": 0.3474361819715692
+    },
+    {
+      "start_seconds": 12.0,
+      "end_seconds": 14.0,
+      "mic_rms": 0.0381298473049379,
+      "cleaned_rms": 0.037068131189287465,
+      "level_reduction_db": 0.24528749435557773
+    },
+    {
+      "start_seconds": 14.0,
+      "end_seconds": 16.0,
+      "mic_rms": 0.028501115540545807,
+      "cleaned_rms": 0.026412868640184398,
+      "level_reduction_db": 0.6609257450155736
+    },
+    {
+      "start_seconds": 16.0,
+      "end_seconds": 18.0,
+      "mic_rms": 0.016717661350128407,
+      "cleaned_rms": 0.015710230016143516,
+      "level_reduction_db": 0.5398595961951216
+    },
+    {
+      "start_seconds": 18.0,
+      "end_seconds": 19.9181875,
+      "mic_rms": 0.030755708934033836,
+      "cleaned_rms": 0.029440606826089493,
+      "level_reduction_db": 0.37957969585872414
+    }
+  ],
+  "mic_before": {
+    "rms": 0.02235089821112727,
+    "peak": 0.25457763671875,
+    "samples_at_or_above_full_scale": 0
+  },
+  "reference": {
+    "rms": 0.0024351456506498267,
+    "peak": 0.02100897766649723,
+    "samples_at_or_above_full_scale": 0
+  },
+  "mic_after_aec": {
+    "rms": 0.02134291067893595,
+    "peak": 0.2835133373737335,
+    "samples_at_or_above_full_scale": 0
+  },
+  "mic_after_aec_linear": {
+    "rms": 0.02134291067893595,
+    "peak": 0.2835133373737335,
+    "samples_at_or_above_full_scale": 0
+  },
+  "mic_after_aec_suppressed": {
+    "rms": 0.02001587891113771,
+    "peak": 0.2721223533153534,
+    "samples_at_or_above_full_scale": 0
+  }
+}

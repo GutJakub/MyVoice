@@ -1,0 +1,160 @@
+{
+  "backend": "myvoice-aec3 / pywebrtc-audio 0.2.0 native source",
+  "delay_hint_ms": 0,
+  "selected_output": "linear",
+  "output_latency_compensated_samples": {
+    "linear": 64,
+    "suppressed": 128
+  },
+  "capture": {
+    "backend": "windows-raw",
+    "metadata": {
+      "streams": [
+        {
+          "id": 0,
+          "name": "mic",
+          "device": "Windows default microphone",
+          "sample_rate": 48000,
+          "channels": 2,
+          "format": "float32"
+        },
+        {
+          "id": 1,
+          "name": "reference",
+          "device": "SAMSUNG (HD Audio Driver for Display Audio)",
+          "sample_rate": 48000,
+          "channels": 2,
+          "format": "float32"
+        }
+      ],
+      "mic_raw": true
+    },
+    "mic": {
+      "native_sample_rate": 48000,
+      "native_channels": 2,
+      "clock_deviation_ppm": 0.6278730506625863,
+      "timestamp_fit_max_error_ms": 0.3975661043620349,
+      "first_sample_qpc_seconds": 68649.85168980189,
+      "packets": 1999
+    },
+    "reference": {
+      "native_sample_rate": 48000,
+      "native_channels": 2,
+      "clock_deviation_ppm": 0.14858095509495683,
+      "timestamp_fit_max_error_ms": 0.39769811469270167,
+      "first_sample_qpc_seconds": 68649.8466534206,
+      "packets": 2000
+    },
+    "common_start_qpc_seconds": 68649.85168980189,
+    "startup_offset_ms": -5.0363812915747985
+  },
+  "tail_samples_trimmed": {
+    "mic": 0,
+    "reference": 0
+  },
+  "aec3_metrics": {
+    "delay_ms": 116,
+    "echo_return_loss": 20.0,
+    "echo_return_loss_enhancement": 6.193838119506836,
+    "reference_gain_db": 21.07553116016108
+  },
+  "processing_seconds": 0.10805872000491945,
+  "audio_seconds": 19.99,
+  "windows": [
+    {
+      "start_seconds": 0.0,
+      "end_seconds": 2.0,
+      "mic_rms": 0.01358253967031723,
+      "cleaned_rms": 0.008935973811960192,
+      "level_reduction_db": 3.636781895845181
+    },
+    {
+      "start_seconds": 2.0,
+      "end_seconds": 4.0,
+      "mic_rms": 0.03034975313703791,
+      "cleaned_rms": 0.02675247413375964,
+      "level_reduction_db": 1.0958242015844233
+    },
+    {
+      "start_seconds": 4.0,
+      "end_seconds": 6.0,
+      "mic_rms": 0.009643028189004178,
+      "cleaned_rms": 0.003872310683021436,
+      "level_reduction_db": 7.924864839799641
+    },
+    {
+      "start_seconds": 6.0,
+      "end_seconds": 8.0,
+      "mic_rms": 0.0014010200183865857,
+      "cleaned_rms": 0.00099209079764287,
+      "level_reduction_db": 2.997858389236192
+    },
+    {
+      "start_seconds": 8.0,
+      "end_seconds": 10.0,
+      "mic_rms": 0.024272824679788172,
+      "cleaned_rms": 0.010624461697171225,
+      "level_reduction_db": 7.17626767758777
+    },
+    {
+      "start_seconds": 10.0,
+      "end_seconds": 12.0,
+      "mic_rms": 0.029481833634295025,
+      "cleaned_rms": 0.009719007261168528,
+      "level_reduction_db": 9.638651691051606
+    },
+    {
+      "start_seconds": 12.0,
+      "end_seconds": 14.0,
+      "mic_rms": 0.016686387999676682,
+      "cleaned_rms": 0.00600989273581943,
+      "level_reduction_db": 8.869912339425042
+    },
+    {
+      "start_seconds": 14.0,
+      "end_seconds": 16.0,
+      "mic_rms": 0.008531565798858822,
+      "cleaned_rms": 0.0023022023132176087,
+      "level_reduction_db": 11.377705172484276
+    },
+    {
+      "start_seconds": 16.0,
+      "end_seconds": 18.0,
+      "mic_rms": 0.005715496429912161,
+      "cleaned_rms": 0.002750544698284765,
+      "level_reduction_db": 6.352705017572293
+    },
+    {
+      "start_seconds": 18.0,
+      "end_seconds": 19.99,
+      "mic_rms": 0.00840144391286239,
+      "cleaned_rms": 0.0026097081619498963,
+      "level_reduction_db": 10.15523977189746
+    }
+  ],
+  "mic_before": {
+    "rms": 0.01764814711066613,
+    "peak": 0.24190552532672882,
+    "samples_at_or_above_full_scale": 0
+  },
+  "reference": {
+    "rms": 0.004417671784014269,
+    "peak": 0.03783325478434563,
+    "samples_at_or_above_full_scale": 0
+  },
+  "mic_after_aec": {
+    "rms": 0.010369003665907088,
+    "peak": 0.22482351958751678,
+    "samples_at_or_above_full_scale": 0
+  },
+  "mic_after_aec_linear": {
+    "rms": 0.010369003665907088,
+    "peak": 0.22482351958751678,
+    "samples_at_or_above_full_scale": 0
+  },
+  "mic_after_aec_suppressed": {
+    "rms": 0.008050696253256462,
+    "peak": 0.22401396930217743,
+    "samples_at_or_above_full_scale": 0
+  }
+}
