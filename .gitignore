@@ -6,8 +6,37 @@ dist/
 wheels/
 *.egg-info
 
-# Virtual environments
-.venv
+# Python virtual environment
+.venv/
+venv/
+env/
+
+docs/
+
+# Environment variables / secrets
+.env
+.env.*
+!.env.example
+
+models/
+*.onnx
+*.tflite
+*.pt
+*.pth
+*.bin
+*.safetensors
+
+# IDE
+.vscode/
+.idea/
+
+# OS junk
+.DS_Store
+Thumbs.db
+
+# Recordings / generated audio
+recordings/
+*.wav
 
 # Windows helper build outputs
 windows/**/bin/
