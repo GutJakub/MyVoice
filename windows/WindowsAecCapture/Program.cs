@@ -13,15 +13,16 @@ static int Run(string[] args)
 {
     if (args.Length == 1 && args[0] is "--help" or "-h")
     {
-        Console.Error.WriteLine("WindowsAecCapture [--seconds 1..120]\nRAW Windows microphone and playback reference; binary MVAEC001 packets on stdout.");
+        Console.Error.WriteLine("WindowsAecCapture [--seconds 1..120 | --stream]\nRAW Windows microphone and playback reference; binary MVAEC001 packets on stdout.");
         return 0;
     }
 
     var seconds = 20.0;
-    if (args.Length != 0 && (args.Length != 2 || args[0] != "--seconds" ||
+    var streamMode = args.Length == 1 && args[0] == "--stream";
+    if (!streamMode && args.Length != 0 && (args.Length != 2 || args[0] != "--seconds" ||
         !double.TryParse(args[1], System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out seconds) || !double.IsFinite(seconds) || seconds < 1 || seconds > 120))
     {
-        Console.Error.WriteLine("Expected --seconds followed by a number from 1 to 120.");
+        Console.Error.WriteLine("Expected --stream or --seconds followed by a number from 1 to 120.");
         return 2;
     }
 
@@ -50,6 +51,16 @@ static int Run(string[] args)
         var micCapture = microphone.AudioCaptureClient;
         var refCapture = reference.AudioCaptureClient;
 
+        // Keep the render engine producing timestamped loopback packets even
+        // when media is paused. This stream contains only digital silence.
+        using var silence = streamMode ? renderDevice.AudioClient : null;
+        if (silence != null)
+        {
+            silence.Initialize(AudioClientShareMode.Shared, AudioClientStreamFlags.None,
+                1_000_000, 0, refFormat, Guid.Empty);
+            FillSilence(silence);
+        }
+
         using var output = new BinaryWriter(Console.OpenStandardOutput(), Encoding.UTF8);
         var header = JsonSerializer.SerializeToUtf8Bytes(new { streams, mic_raw = true });
         output.Write(Encoding.ASCII.GetBytes("MVAEC001"));
@@ -60,16 +71,23 @@ static int Run(string[] args)
 
         var micStarted = false;
         var refStarted = false;
+        var silenceStarted = false;
         try
         {
+            if (silence != null)
+            {
+                silence.Start();
+                silenceStarted = true;
+            }
             // Render first ensures that the first microphone packet has history.
             reference.Start();
             refStarted = true;
             microphone.Start();
             micStarted = true;
             var timer = Stopwatch.StartNew();
-            while (!stop.IsCancellationRequested && timer.Elapsed.TotalSeconds < seconds)
+            while (!stop.IsCancellationRequested && (streamMode || timer.Elapsed.TotalSeconds < seconds))
             {
+                if (silence != null) FillSilence(silence);
                 Drain(refCapture, 1, refFormat.BlockAlign, output);
                 Drain(micCapture, 0, micFormat.BlockAlign, output);
                 output.Flush();
@@ -80,6 +98,7 @@ static int Run(string[] args)
         {
             if (micStarted) microphone.Stop();
             if (refStarted) reference.Stop();
+            if (silenceStarted) silence!.Stop();
         }
         return 0;
     }
@@ -93,6 +112,15 @@ static int Run(string[] args)
     {
         stop.Dispose();
     }
+}
+
+static void FillSilence(AudioClient client)
+{
+    int available = client.BufferSize - client.CurrentPadding;
+    if (available <= 0) return;
+    var render = client.AudioRenderClient;
+    render.GetBuffer(available);
+    render.ReleaseBuffer(available, AudioClientBufferFlags.Silent);
 }
 
 static object Describe(byte id, string name, string device, WaveFormat format)

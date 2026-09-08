@@ -31,10 +31,7 @@ class Transcriber:
             beam_size=5,
             condition_on_previous_text=False,
             initial_prompt=(
-                'Voice assitant commands. '
-                'Examples: Stop. Open Spotify. Start. '
-                "Open browser. or "
-                'Short English voice commands for a desktop assistant. '
+                'Hey Jarvis. English voice commands for a desktop assistant.'
             )
         )
 
