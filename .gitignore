@@ -11,6 +11,8 @@ wheels/
 venv/
 env/
 
+.spotify_cache
+
 docs/
 
 # Environment variables / secrets

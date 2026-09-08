@@ -17,7 +17,7 @@ class CommandRouter:
     def __init__(self, system_actions: SystemActions):
         self.system_actions = system_actions
 
-    def route(self, text: str) -> str:
+    def route(self, text: str) -> str | None:
         command = self._normalize(text)
 
         application = self._extract_argument(
@@ -108,7 +108,7 @@ class CommandRouter:
         if volume is not None:
             return self.system_actions.set_volume(volume)
 
-        return f"I don't know how to handle: {text}"
+        return None
 
         
     def _extract_volume(self, command: str) -> int | None:

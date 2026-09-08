@@ -9,7 +9,8 @@ from myvoice.audio.utterance import UtteranceRecorder
 from myvoice.audio.vad import VoiceActivityDetector
 from myvoice.commands.router import CommandRouter
 from myvoice.wakeword.detector import WakeWordDetector
-
+from myvoice.audio.media_interruption import MediaInterruptionController, InterruptionMode
+from myvoice.agent.assistant import run_command
 from myvoice.integrations.windows_audio import (
     WindowsAudioController,
 )
@@ -24,17 +25,25 @@ def main():
     print("Loading speech models...", flush=True)
     vad = VoiceActivityDetector()
 
+    audio_controller = WindowsAudioController()
+    
+    media_interruption = MediaInterruptionController(
+        audio_controller=audio_controller,
+        mode=InterruptionMode.PAUSE,
+    )
+
     utterance_recorder = UtteranceRecorder(
         recorder=recorder,
         vad=vad,
         wake_detector=WakeWordDetector(debug_audio=args.debug_audio),
+        media_interruption=media_interruption
     )
 
     transcriber = Transcriber(
         model_size="small.en",
     )
     
-    audio_controller = WindowsAudioController()
+    
     system_actions = SystemActions(audio_controller=audio_controller)
 
     command_router = CommandRouter(
@@ -46,31 +55,36 @@ def main():
     try:
         with closing(utterance_recorder.listen()) as utterances:
             for audio in utterances:
+                try:
+                    print("🎤 Wykryto wypowiedź")
 
-                print("🎤 Wykryto wypowiedź")
+                    audio = utterance_recorder.normalize(audio)
 
-                audio = utterance_recorder.normalize(audio)
+                    print("📝 Transkrybuję...")
 
-                print("📝 Transkrybuję...")
+                    text = transcriber.transcribe(
+                        audio
+                    )
 
-                text = transcriber.transcribe(
-                    audio
-                )
+                    command = extract_command(text)
+                    if not command:
+                        utterance_recorder.awaiting_command = True
+                        print("Jarvis: Yes? Say your command.")
+                        print("\nSłucham...")
+                        continue
 
-                command = extract_command(text)
-                if not command:
-                    utterance_recorder.awaiting_command = True
-                    print("Jarvis: Yes? Say your command.")
+                    print(f"Ty: {text}")
+
+                    response = command_router.route(command)
+                    if response is None:
+                        response = run_command(command)
+                    
+                    print(f"MyVoice: {response}")
+
+        
                     print("\nSłucham...")
-                    continue
-
-                print(f"Ty: {text}")
-
-                response = command_router.route(command)
-                print(f"MyVoice: {response}")
-
-    
-                print("\nSłucham...")
+                finally:
+                    media_interruption.restore()
 
     except KeyboardInterrupt:
         print("\nZatrzymano.")
