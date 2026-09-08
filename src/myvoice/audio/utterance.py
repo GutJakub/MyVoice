@@ -1,8 +1,6 @@
 from collections import deque
 from contextlib import closing
 from collections.abc import Generator
-from pathlib import Path
-import wave
 
 import numpy as np
 
@@ -83,29 +81,6 @@ class UtteranceRecorder:
                         self.wake_detector.reset()
                     if utterance is not None:
                         yield utterance
-
-    def save_wav(
-        self,
-        audio: np.ndarray,
-        output_path: Path,
-    ) -> Path:
-        output_path.parent.mkdir(
-            parents=True,
-            exist_ok=True,
-        )
-
-        # Wracamy z float32 [-1, 1] do standardowego PCM int16
-        audio_int16 = (
-            np.clip(audio, -1.0, 1.0) * 32767
-        ).astype(np.int16)
-
-        with wave.open(str(output_path), "wb") as wav_file:
-            wav_file.setnchannels(1)
-            wav_file.setsampwidth(2)  # int16 = 2 bajty
-            wav_file.setframerate(self.sample_rate)
-            wav_file.writeframes(audio_int16.tobytes())
-
-        return output_path
 
     def normalize(
         self,

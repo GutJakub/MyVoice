@@ -6,13 +6,10 @@ readme = "README.md"
 requires-python = ">=3.11,<3.12"
 dependencies = [
     "faster-whisper>=1.2.1",
-    "myvoice-aec3",
     "numpy>=2.2,<2.3",
     "onnxruntime>=1.29.0",
     "openwakeword>=0.6.0,<0.7",
-    "scipy>=1.17,<1.18",
     "silero-vad>=6.2.1",
-    "sounddevice>=0.5.6",
     "torch",
     "torchaudio",
 ]
@@ -32,9 +29,3 @@ explicit = true
 [tool.uv.sources]
 torch = { index = "pytorch-cpu" }
 torchaudio = { index = "pytorch-cpu" }
-myvoice-aec3 = { workspace = true }
-
-[tool.uv.workspace]
-members = [
-    "native/myvoice-aec3",
-]
