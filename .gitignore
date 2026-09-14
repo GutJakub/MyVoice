@@ -32,6 +32,8 @@ models/
 .vscode/
 .idea/
 
+AGENTS.md
+
 # OS junk
 .DS_Store
 Thumbs.db

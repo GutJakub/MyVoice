@@ -138,4 +138,5 @@ class CommandRouter:
             .lower()
             .strip()
             .rstrip(".?!")
+            .lstrip("Hey Jarvis,")
         )

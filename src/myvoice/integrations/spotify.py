@@ -17,6 +17,36 @@ SCOPES = [
     "playlist-read-private",
     "playlist-read-collaborative",
 ]
+
+LETTER_NAMES = {
+    "a": "ay",
+    "b": "bee",
+    "c": "see",
+    "d": "dee",
+    "e": "ee",
+    "f": "eff",
+    "g": "gee",
+    "h": "aitch",
+    "i": "eye",
+    "j": "jay",
+    "k": "kay",
+    "l": "el",
+    "m": "em",
+    "n": "en",
+    "o": "oh",
+    "p": "pee",
+    "q": "cue",
+    "r": "ar",
+    "s": "ess",
+    "t": "ty",
+    "u": "you",
+    "v": "vee",
+    "w": "double you",
+    "x": "ex",
+    "y": "why",
+    "z": "zee",
+}
+
 FUZZY_MIN_SCORE = 75.0
 FUZZY_MIN_MARGIN = 10.0
 PLAYBACK_MIN_SCORE = 70.0
@@ -57,6 +87,45 @@ def _find_top_fuzzy_matches(
     runner_up = scored[1] if len(scored) > 1 else (None, 0.0)
     return best, runner_up
 
+def _spoken_acronym(name: str) -> str | None:
+    normalized = _normalize_name(name).replace(" ", "")
+
+    if not normalized.isalpha():
+        return None
+
+    if len(normalized) > 4:
+        return None
+
+    return " ".join(
+        LETTER_NAMES[letter]
+        for letter in normalized
+    )
+
+def _find_acronym_match(
+    playlists: list[dict],
+    requested_name: str,
+) -> tuple[dict | None, float]:
+    requested = _normalize_name(requested_name)
+
+    best_playlist = None
+    best_score = 0.0
+
+    for playlist in playlists:
+        spoken = _spoken_acronym(playlist["name"])
+
+        if spoken is None:
+            continue
+
+        score = fuzz.ratio(
+            requested,
+            spoken,
+        )
+
+        if score > best_score:
+            best_score = score
+            best_playlist = playlist
+
+    return best_playlist, best_score
 
 class SpotifyClient:
     def __init__(self) -> None:
@@ -101,6 +170,18 @@ class SpotifyClient:
         if token_match is not None:
             return token_match, "token_match", 100.0
 
+        acronym_playlist, acronym_score = _find_acronym_match(
+            playlists=playlists,
+            requested_name=name,
+        )
+
+        if acronym_playlist and acronym_score >= 60:
+            return (
+                acronym_playlist,
+                "acronym",
+                acronym_score,
+            )
+        
         (best, best_score), (_, runner_up_score) = _find_top_fuzzy_matches(playlists, name)
         if (best is not None and best_score >= FUZZY_MIN_SCORE
                 and best_score - runner_up_score >= FUZZY_MIN_MARGIN):

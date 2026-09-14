@@ -1,7 +1,17 @@
 from agents import Agent, Runner
 
 from myvoice.tools.spotify import play_spotify_playlist
-
+from myvoice.tools.browser import (
+    browser_click,
+    browser_fill,
+    browser_get_page_info,
+    browser_open_url,
+    google_open_result,
+    google_search,
+    netflix_open_title,
+    netflix_play,
+    netflix_search,
+)
 
 assistant = Agent(
     name="MyVoice",
@@ -19,6 +29,20 @@ For Spotify:
 """,
     tools=[
         play_spotify_playlist,
+        # Browser
+        browser_open_url,
+        browser_get_page_info,
+        browser_click,
+        browser_fill,
+
+        # Google
+        google_search,
+        google_open_result,
+
+        # Netflix
+        netflix_search,
+        netflix_open_title,
+        netflix_play,
     ],
 )
 
