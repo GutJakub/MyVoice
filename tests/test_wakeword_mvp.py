@@ -50,6 +50,15 @@ class WakeWordMvpTests(unittest.TestCase):
         next(stream)  # Command without a second wake phrase.
         self.assertEqual(list(stream), [])  # Later speech requires another wake.
 
+    def test_wake_retains_only_ten_chunks_of_preceding_audio(self):
+        recorder, source = self.recorder(
+            [None] * 59 + [{'start': 59}, None, {'end': 61}],
+            [False] * 59 + [True])
+        utterances = list(recorder.listen())
+        self.assertEqual(len(utterances), 1)
+        np.testing.assert_array_equal(
+            utterances[0], np.concatenate(source.chunks[50:62]))
+
     def test_followup_window_expires_without_authorizing_later_speech(self):
         recorder, _ = self.recorder(
             [None] * 313 + [{'start': 313}, {'end': 314}], [False, False])

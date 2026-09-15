@@ -33,7 +33,7 @@ class Transcriber:
             beam_size=5,
             condition_on_previous_text=False,
             initial_prompt=(
-                'Hey Jarvis. English voice commands for a desktop assistant.'
+                'Hey Jarvis. English voice commands for a desktop assistant. Watchout for spotify playlist names they usually are initials like RS, RD, RT, RP'
             )
         )
 

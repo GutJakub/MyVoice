@@ -8,6 +8,14 @@ uv sync --locked
 uv run myvoice
 ```
 
+To enter commands using the keyboard instead of the microphone:
+
+```bash
+uv run myvoice --keyboard
+```
+
+Type `exit` or `quit` to stop keyboard mode.
+
 The microphone is captured through `parecord` from the WSLg `RDPSource` device
 at 16 kHz mono. `parecord` must be installed (Ubuntu package: `pulseaudio-utils`).
 Model files must be available locally or downloaded on first use.

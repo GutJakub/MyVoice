@@ -605,6 +605,8 @@ Start-Process `
             "odtwórz",
             "resume",
             "play",
+            "Następny odcinek",
+            "Next episode"
         )
 
         attempts = int(timeout_seconds / 0.5)

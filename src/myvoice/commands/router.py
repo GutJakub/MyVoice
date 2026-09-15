@@ -133,10 +133,11 @@ class CommandRouter:
 
     @staticmethod
     def _normalize(text: str) -> str:
-        return (
-            text
-            .lower()
-            .strip()
-            .rstrip(".?!")
-            .lstrip("Hey Jarvis,")
+        command = text.lower().strip()
+        command = re.sub(
+            r"^(?:(?:hey|hi)[\s,!.:-]*)?jarvis\b[\s,!.?:-]*",
+            "",
+            command,
         )
+
+        return command.rstrip(".?!")
