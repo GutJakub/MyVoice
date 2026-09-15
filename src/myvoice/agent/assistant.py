@@ -8,9 +8,9 @@ from myvoice.tools.browser import (
     browser_open_url,
     google_open_result,
     google_search,
-    netflix_open_title,
-    netflix_play,
-    netflix_search,
+    streaming_open_title,
+    streaming_play,
+    streaming_search,
 )
 
 assistant = Agent(
@@ -39,8 +39,12 @@ For Spotify:
 - do not invent playlist names
 - keep responses short
 
-When a command refers to Netflix and contains something that resembles
-a movie or TV title, treat that text as the requested title.
+For Netflix, Max/HBO Max, Prime Video and SkyShowtime:
+- normalize HBO and HBO Max to Max
+- normalize Prime and Amazon Prime to Prime Video
+- extract the streaming service and the intended movie or TV title
+- first search, then open the matching title, then play it when requested
+- do not invent titles or services
 
 Do not ask for clarification when the intended action is reasonably clear.
 
@@ -57,10 +61,10 @@ Do not ask for clarification when the intended action is reasonably clear.
         google_search,
         google_open_result,
 
-        # Netflix
-        netflix_search,
-        netflix_open_title,
-        netflix_play,
+        # Streaming services
+        streaming_search,
+        streaming_open_title,
+        streaming_play,
     ],
 )
 

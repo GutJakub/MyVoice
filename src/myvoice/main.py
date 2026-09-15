@@ -37,7 +37,7 @@ def main():
     command_router = CommandRouter(
         system_actions=system_actions,
     )
-    setup_tracing()
+    #setup_tracing()
     
     if args.keyboard:
         run_keyboard_mode(command_router)

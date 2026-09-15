@@ -1,43 +1,12 @@
-import asyncio
-
 from agents import function_tool
 
 from myvoice.actions.browser import BrowserActions
+from myvoice.actions.streaming import get_streaming_service
 
-async def print_visible_actions(self) -> None:
-    if self._page is None:
-        return
+import logging
 
-    elements = self._page.locator(
-        """
-        button,
-        [role="button"],
-        a
-        """
-    )
+logger = logging.getLogger(__name__)
 
-    print("\nVISIBLE ACTIONS:")
-    print("URL:", self._page.url)
-
-    for i in range(await elements.count()):
-        element = elements.nth(i)
-
-        if not await element.is_visible():
-            continue
-
-        info = await element.evaluate(
-            """
-            (el) => ({
-                tag: el.tagName.toLowerCase(),
-                text: (el.innerText || "").trim(),
-                ariaLabel: el.getAttribute("aria-label"),
-                role: el.getAttribute("role"),
-                dataUia: el.getAttribute("data-uia")
-            })
-            """
-        )
-
-        print(i, info)
 # One shared browser instance.
 # This is important because we want to keep the same Chrome session
 # between consecutive agent tool calls.
@@ -97,41 +66,40 @@ async def google_open_result(result_id: int) -> str:
 
 
 @function_tool
-async def netflix_search(query: str) -> list[dict]:
-    """Search Netflix for a movie or TV series and return matching titles."""
+async def streaming_search(service: str, query: str) -> list[dict]:
+    """Search a supported streaming service for a movie or TV series."""
 
-    await browser.open_url(
-        "https://www.netflix.com/browse"
-    )
-
-    await browser.click_by_name("Szukaj")
-
-    await browser.fill_by_name(
-        "Tytuły",
-        query,
-    )
-
-    await asyncio.sleep(1)
-
-    return await browser.get_netflix_results()
-
-
-@function_tool
-async def netflix_open_title(title: str) -> str:
-    """Open a Netflix title from the current Netflix search results."""
-    await browser.open_netflix_title(title)
-
-    return f'Opened Netflix title "{title}"'
-
-
-@function_tool
-async def netflix_play() -> str:
-    """Play or resume the currently opened Netflix title."""
+    logger.warning("Streaming search: service=%r query=%r", service, query)
 
     try:
-        button_name = await browser.play_current_netflix_title()
+        profile = get_streaming_service(service)
+        results = await browser.search_streaming(profile, query)
+        logger.warning("Streaming results: %d", len(results))
+        return results
+    except Exception:
+        logger.exception("Streaming search failed")
+        raise
+    
+    # profile = get_streaming_service(service)
+    # return await browser.search_streaming(profile, query)
 
-        return f'Clicked Netflix "{button_name}" button.'
+
+@function_tool
+async def streaming_open_title(title: str) -> str:
+    """Open a title from the latest streaming search results."""
+    await browser.open_streaming_title(title)
+
+    return f'Opened streaming title "{title}"'
+
+
+@function_tool
+async def streaming_play() -> str:
+    """Play or resume the currently opened streaming title."""
+
+    try:
+        button_name = await browser.play_current_streaming_title()
+
+        return f'Clicked streaming "{button_name}" button.'
 
     except Exception:
         await browser.print_visible_actions()

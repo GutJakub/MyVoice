@@ -1,6 +1,7 @@
 from playwright.async_api import (
     Browser,
     BrowserContext,
+    ElementHandle,
     Error as PlaywrightError,
     TimeoutError as PlaywrightTimeoutError,
     Page,
@@ -11,6 +12,8 @@ import re
 import asyncio
 from urllib.parse import quote_plus
 
+from myvoice.actions.streaming import StreamingService
+
 class BrowserActions:
     CDP_URL = "http://127.0.0.1:9222"
 
@@ -20,7 +23,10 @@ class BrowserActions:
         self._context: BrowserContext | None = None
         self._page: Page | None = None
         self._search_results: list[dict] = []
-        self._netflix_results: list[dict] = []
+        self._streaming_results: list[dict] = []
+        self._streaming_targets: dict[int, ElementHandle] = {}
+        self._streaming_results_url: str | None = None
+        self._streaming_service: StreamingService | None = None
 
     async def start(self) -> None:
         """Connect to the MyVoice Chrome instance running on Windows."""
@@ -387,28 +393,76 @@ Start-Process `
             text,
         )
 
-    async def get_netflix_results(
+    async def search_streaming(
+        self,
+        service: StreamingService,
+        query: str,
+    ) -> list[dict]:
+        self._streaming_service = service
+        self._streaming_results = []
+        self._streaming_targets = {}
+        search_url = service.search_url.format(query=quote_plus(query))
+        await self.open_url(search_url)
+
+        print("Requested URL:", search_url, flush=True)
+        print("Actual URL:", self._page.url, flush=True)
+        print("Page title:", await self._page.title(), flush=True)
+
+        if "{query}" not in service.search_url:
+            assert self._page is not None
+            search_input = self._page.locator(
+                f":is({service.search_input_selector}):visible"
+            ).first
+            try:
+                await search_input.wait_for(state="visible", timeout=15_000)
+            except PlaywrightTimeoutError as error:
+                raise RuntimeError(
+                    f"{service.display_name} search input was not visible "
+                    "within 15 seconds. "
+                    f"Current URL: {self._page.url}"
+                ) from error
+
+            await search_input.fill(query)
+            await search_input.press("Enter")
+
+        return await self.get_streaming_results()
+
+    async def get_streaming_results(
         self,
         limit: int = 30,
     ) -> list[dict]:
         if self._page is None:
             raise RuntimeError("Browser is not started.")
 
-        # Give Netflix a moment to render search results.
-        await self._page.wait_for_timeout(800)
+        if self._streaming_service is None:
+            raise RuntimeError("No streaming service was selected.")
 
-        links = self._page.locator(
-            """
-            a[href*="jbv="],
-            a[href*="/watch/"],
-            a[href*="/title/"]
-            """
-        )
+        self._streaming_results = []
+        self._streaming_targets = {}
+        selector = self._streaming_service.result_selector
+        links = self._page.locator(f":is({selector}):visible")
+        try:
+            await links.first.wait_for(state="visible", timeout=15_000)
+        except PlaywrightTimeoutError as error:
+            tile_count = await self._page.locator(
+                '[data-testid="collection-tile"]'
+            ).count()
+            role_link_count = await self._page.locator('[role="link"]').count()
+            raise RuntimeError(
+                f"{self._streaming_service.display_name}: no visible result "
+                f"matched {selector!r} within 15 seconds. "
+                f"Collection tiles: {tile_count}; role links: {role_link_count}. "
+                f"Current URL: {self._page.url}. "
+                "Search results could not be read; this does not confirm "
+                "that the requested title is unavailable."
+            ) from error
 
         count = await links.count()
 
         results = []
         seen_urls = set()
+        self._streaming_targets = {}
+        self._streaming_results_url = self._page.url
 
         for i in range(count):
             link = links.nth(i)
@@ -427,6 +481,7 @@ Start-Process `
                         ) || el;
 
                     const values = [
+                        el.querySelector('[data-testid="title"]')?.textContent,
                         el.getAttribute("aria-label"),
                         el.getAttribute("title"),
 
@@ -467,7 +522,8 @@ Start-Process `
                     ];
 
                     return {
-                        href: el.href,
+                        href: el.href || null,
+                        domId: el.id || null,
                         names: names
                     };
                 }
@@ -476,10 +532,9 @@ Start-Process `
 
             href = info["href"]
 
-            if not href:
-                continue
-
-            canonical_url = href
+            # Keep query parameters: Netflix identifies preview results with
+            # the `jbv` parameter even when the path is the same.
+            canonical_url = href or info.get("domId") or f"element:{i}"
 
             if canonical_url in seen_urls:
                 continue
@@ -495,74 +550,104 @@ Start-Process `
 
             seen_urls.add(canonical_url)
 
+            if not href:
+                target = await link.element_handle()
+                if target is None:
+                    continue
+                self._streaming_targets[len(results)] = target
+
             results.append(
                 {
                     "id": len(results),
                     "title": names[0],
                     "names": names,
                     "href": href,
+                    "service": self._streaming_service.key,
                 }
             )
 
             if len(results) >= limit:
                 break
 
-        self._netflix_results = results
+        self._streaming_results = results
+
+        if not results:
+            raise RuntimeError(
+                f"Found {count} visible streaming candidates, but could not "
+                "extract any titles. Search results could not be read."
+            )
 
         return results
 
-    async def open_netflix_title(
+    async def open_streaming_title(
         self,
         title: str,
     ) -> None:
-        if not self._netflix_results:
-            await self.get_netflix_results()
+        if not self._streaming_results:
+            await self.get_streaming_results()
 
         normalized_title = title.casefold().strip()
 
         # First try exact match.
-        for result in self._netflix_results:
-            if result["title"].casefold().strip() == normalized_title:
-                await self.open_netflix_result(result["id"])
+        for result in self._streaming_results:
+            if any(
+                name.casefold().strip() == normalized_title
+                for name in result["names"]
+            ):
+                await self.open_streaming_result(result["id"])
                 return
 
         # Then allow partial match.
         matches = [
             result
-            for result in self._netflix_results
-            if normalized_title in result["title"].casefold()
+            for result in self._streaming_results
+            if any(
+                normalized_title in name.casefold()
+                for name in result["names"]
+            )
         ]
 
         if len(matches) == 1:
-            await self.open_netflix_result(matches[0]["id"])
+            await self.open_streaming_result(matches[0]["id"])
             return
 
         if len(matches) > 1:
             names = [result["title"] for result in matches]
 
             raise ValueError(
-                f'Multiple Netflix results match "{title}": {names}'
+                f'Multiple streaming results match "{title}": {names}'
             )
 
         raise ValueError(
-            f'Netflix title "{title}" was not found.'
+            f'Streaming title "{title}" was not found.'
         )
 
-    async def open_netflix_result(
+    async def open_streaming_result(
         self,
         result_id: int,
     ) -> None:
         if self._page is None:
             raise RuntimeError("Browser is not started.")
 
-        if result_id < 0 or result_id >= len(self._netflix_results):
+        if result_id < 0 or result_id >= len(self._streaming_results):
             raise ValueError(
-                f"Netflix result {result_id} does not exist."
+                f"Streaming result {result_id} does not exist."
             )
 
-        result = self._netflix_results[result_id]
+        result = self._streaming_results[result_id]
 
-        await self._page.goto(result["href"])
+        if result["href"]:
+            await self._page.goto(result["href"])
+            return
+
+        target = self._streaming_targets.get(result_id)
+        if (
+            target is None
+            or self._page.url != self._streaming_results_url
+            or not await target.evaluate("el => el.isConnected")
+        ):
+            raise RuntimeError("Streaming result is stale. Search again.")
+        await target.click()
 
     async def click_first_available(
         self,
@@ -593,26 +678,24 @@ Start-Process `
             f"None of these elements were found: {names}"
         )
 
-    async def play_current_netflix_title(
+    async def play_current_streaming_title(
         self,
         timeout_seconds: float = 10.0,
     ) -> str:
         if self._page is None:
             raise RuntimeError("Browser is not started.")
 
-        play_names = (
-            "wznów",
-            "odtwórz",
-            "resume",
-            "play",
-            "Następny odcinek",
-            "Next episode"
+        if self._streaming_service is None:
+            raise RuntimeError("No streaming service was selected.")
+
+        play_names = tuple(
+            name.casefold() for name in self._streaming_service.play_names
         )
 
         attempts = int(timeout_seconds / 0.5)
 
         for _ in range(attempts):
-            # Prefer the Netflix preview modal if it exists.
+            # Prefer a preview/details modal if one exists.
             dialogs = self._page.locator('[role="dialog"]')
 
             scope = self._page
@@ -672,9 +755,31 @@ Start-Process `
             await asyncio.sleep(0.5)
 
         raise RuntimeError(
-            "Netflix play/resume action was not found. "
+            f"{self._streaming_service.display_name} play/resume action "
+            "was not found. "
             f"Current URL: {self._page.url}"
         )
+
+    async def print_visible_actions(self) -> None:
+        if self._page is None:
+            return
+
+        elements = self._page.locator("button, [role=button], a")
+        print("\nVISIBLE ACTIONS:")
+        print("URL:", self._page.url)
+
+        for i in range(await elements.count()):
+            element = elements.nth(i)
+            if not await element.is_visible():
+                continue
+            print(i, await element.evaluate("""
+                (el) => ({
+                    tag: el.tagName.toLowerCase(),
+                    text: (el.innerText || "").trim(),
+                    ariaLabel: el.getAttribute("aria-label"),
+                    role: el.getAttribute("role")
+                })
+            """))
 
     async def close(self) -> None:
         if self._browser is not None:
