@@ -1,22 +1,49 @@
-# MyVoice
+# MyVoice — wake-word MVP
 
-Local desktop voice assistant with an offline Windows RAW/WebRTC AEC3 audio workflow.
-
-From the project root:
+Local voice assistant using the WSL microphone, openWakeWord (`Hey Jarvis`),
+Silero VAD and Whisper `small.en`. Commands are in English.
 
 ```bash
-# Record microphone + playback and save cleaned audio (suppressed by default).
-uv run python scripts/record_aec.py --seconds 25
-
-# Check a cleaned recording with VAD only.
-uv run python scripts/check_filtered_vad.py recordings/YOUR-TRIAL/mic_after_aec.wav
-
-# Replay cleaned audio through transcription and command routing.
-uv run myvoice --audio-file recordings/YOUR-TRIAL/mic_after_aec.wav
+uv sync --locked
+uv run myvoice
 ```
 
-`uv run myvoice` still uses the original microphone input. Continuous live AEC is not connected yet.
+To enter commands using the keyboard instead of the microphone:
 
-Audio components live in `src/myvoice/audio/`, manual recording/diagnostic commands in `scripts/`, and automated tests in `tests/`.
+```bash
+uv run myvoice --keyboard
+```
 
-See [setup, processing details and testing](docs/aec-offline.md).
+Type `exit` or `quit` to stop keyboard mode.
+
+The microphone is captured through `parecord` from the WSLg `RDPSource` device
+at 16 kHz mono. `parecord` must be installed (Ubuntu package: `pulseaudio-utils`).
+Model files must be available locally or downloaded on first use.
+
+Wait for the listening message, then say **“Hey Jarvis, what time is it?”**
+You can also say **“Hey Jarvis”**, wait for **“Jarvis: Yes?”**, and give your
+command within 10 seconds. Stop with Ctrl+C.
+
+```text
+WSL microphone → Hey Jarvis → speech endpoint detection → Whisper → command
+```
+
+The wake detector gates transcription: ordinary speech without a detected wake
+phrase is not sent to Whisper. After a command, the assistant waits for another
+wake phrase. A false wake detection can still open the command window.
+
+Audio is passed to Whisper in memory; the app does not save recordings.
+There is no project-level AEC, playback-reference capture or TV pause/resume in
+this MVP. Windows/WSLg microphone processing may still apply.
+
+For wake-word scores:
+
+```bash
+uv run myvoice --debug-audio
+```
+
+The TV filtration prototype is preserved on the `tv_filtration` branch.
+After verifying this MVP live, commit it before experimenting with TV pause/resume
+on a separate branch.
+
+Run regression tests with `uv run python -m unittest discover -s tests -v`.

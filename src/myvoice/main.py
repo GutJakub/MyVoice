@@ -1,114 +1,135 @@
 import argparse
-from pathlib import Path
+import re
+from contextlib import closing
+
+from agents import set_trace_processors
+from langsmith.integrations.openai_agents_sdk import (
+    OpenAIAgentsTracingProcessor,
+)
 
 from myvoice.actions.system import SystemActions
 from myvoice.asr.transcriber import Transcriber
 from myvoice.audio.recorder import AudioRecorder
-from myvoice.audio.source import AudioSource
 from myvoice.audio.utterance import UtteranceRecorder
 from myvoice.audio.vad import VoiceActivityDetector
-from myvoice.audio.wav_source import WavAudioSource
 from myvoice.commands.router import CommandRouter
-
+from myvoice.wakeword.detector import WakeWordDetector
+from myvoice.agent.assistant import run_command
 from myvoice.integrations.windows_audio import (
     WindowsAudioController,
 )
-from myvoice.audio.levels import get_rms
-WAKE_WORDS = (
-    "my voice",
-    "myvoice",
-)
+
 
 def main():
+
     parser = argparse.ArgumentParser()
+    parser.add_argument("--debug-audio", action="store_true",
+                        help="Print wake-word scores while listening")
     parser.add_argument(
-        "--audio-file",
-        type=Path,
-        help="Replay a cleaned 16 kHz mono WAV through the assistant",
+        "--keyboard",
+        action="store_true",
+        help="Read commands from the keyboard instead of the microphone",
     )
     args = parser.parse_args()
 
-    recorder: AudioSource
-    if args.audio_file is not None:
-        recorder = WavAudioSource(args.audio_file)
-        print(f"Replaying: {args.audio_file}")
-    else:
-        recorder = AudioRecorder()
+    audio_controller = WindowsAudioController()
+    system_actions = SystemActions(audio_controller=audio_controller)
+    command_router = CommandRouter(
+        system_actions=system_actions,
+    )
+    #setup_tracing()
+    
+    if args.keyboard:
+        run_keyboard_mode(command_router)
+        return
+
+    recorder = AudioRecorder()
+    print("Loading speech models...", flush=True)
     vad = VoiceActivityDetector()
 
     utterance_recorder = UtteranceRecorder(
         recorder=recorder,
         vad=vad,
+        wake_detector=WakeWordDetector(debug_audio=args.debug_audio),
     )
 
     transcriber = Transcriber(
         model_size="small.en",
     )
+
+    print('Słucham. Powiedz "Hey Jarvis", a następnie komendę.', flush=True)
     
-    audio_controller = WindowsAudioController()
-    system_actions = SystemActions(audio_controller=audio_controller)
-
-    command_router = CommandRouter(
-        system_actions=system_actions,
-    )
-
-    output_path = Path("recordings/utterance.wav")
-
-    print("Słucham...")
 
     try:
-        for audio in utterance_recorder.listen():
+        with closing(utterance_recorder.listen()) as utterances:
+            for audio in utterances:
+                print("🎤 Wykryto wypowiedź")
 
-            print("🎤 Wykryto wypowiedź")
+                audio = utterance_recorder.normalize(audio)
 
-            audio = utterance_recorder.normalize(audio)
+                print("📝 Transkrybuję...")
 
-            utterance_recorder.save_wav(
-                audio=audio,
-                output_path=output_path,
-            )
+                text = transcriber.transcribe(
+                    audio
+                )
 
-            print(f"RMS: {get_rms(str(output_path))}")
-            
-            print("📝 Transkrybuję...")
+                command = extract_command(text)
+                if not command:
+                    utterance_recorder.awaiting_command = True
+                    print("Jarvis: Yes? Say your command.")
+                    print("\nSłucham...")
+                    continue
 
-            text = transcriber.transcribe(
-                str(output_path)
-            )
+                print(f"Ty: {text}")
 
-            command = extract_command(text)
-            if command is None:
-                print("Ignored - no wake word.")
+                print(f"MyVoice: {execute_command(command, command_router)}")
+
                 print("\nSłucham...")
-                continue
-
-            if not command:
-                print("MyVoice: Yes?")
-                print("\nSłucham...")
-                continue
-
-            print(f"Ty: {text}")
-
-            response = command_router.route(command)
-            print(f"MyVoice: {response}")
-
-    
-            print("\nSłucham...")
-
-        if args.audio_file is not None:
-            print("Replay finished.")
 
     except KeyboardInterrupt:
         print("\nZatrzymano.")
+    except RuntimeError as error:
+        print(f"Audio stopped: {error}")
 
-def extract_command(text: str) -> str | None:
-    normalized = text.lower().strip()
 
-    for wake_word in WAKE_WORDS:
-        if normalized.startswith(wake_word):
-            return text[len(wake_word):].strip(" ,.!?")
+def execute_command(command: str, command_router: CommandRouter) -> str:
+    response = command_router.route(command)
+    if response is None:
+        response = run_command(command)
 
-    return None
+    return response
+
+
+def run_keyboard_mode(command_router: CommandRouter) -> None:
+    print("Tryb klawiatury. Wpisz komendę lub 'exit', aby zakończyć.")
+
+    try:
+        while True:
+            text = input("Ty: ").strip()
+
+            if text.lower() in {"exit", "quit"}:
+                break
+
+            command = extract_command(text)
+            if not command:
+                continue
+
+            print(f"MyVoice: {execute_command(command, command_router)}")
+    except (EOFError, KeyboardInterrupt):
+        pass
+
+    print("Zatrzymano.")
+
+def setup_tracing() -> None:
+    set_trace_processors(
+        [
+            OpenAIAgentsTracingProcessor()
+        ]
+    )
+
+def extract_command(text: str) -> str:
+    command = re.sub(r"^\s*(?:(?:hey|hi)[\s,!.:-]*)?jarvis\b[\s,!.?:-]*", "", text, flags=re.IGNORECASE)
+    return command.strip()
 
 
 if __name__ == "__main__":

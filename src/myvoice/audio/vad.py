@@ -33,5 +33,4 @@ class VoiceActivityDetector:
         )
 
     def reset(self) -> None:
-        # Czyścimy pamięć VAD przed kolejną niezależną wypowiedzią
         self.iterator.reset_states()

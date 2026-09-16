@@ -11,6 +11,8 @@ wheels/
 venv/
 env/
 
+.spotify_cache
+
 docs/
 
 # Environment variables / secrets
@@ -29,6 +31,8 @@ models/
 # IDE
 .vscode/
 .idea/
+
+AGENTS.md
 
 # OS junk
 .DS_Store
