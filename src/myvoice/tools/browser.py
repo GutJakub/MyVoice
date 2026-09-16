@@ -80,9 +80,6 @@ async def streaming_search(service: str, query: str) -> list[dict]:
         logger.exception("Streaming search failed")
         raise
     
-    # profile = get_streaming_service(service)
-    # return await browser.search_streaming(profile, query)
-
 
 @function_tool
 async def streaming_open_title(title: str) -> str:

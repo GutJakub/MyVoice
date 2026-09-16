@@ -14,6 +14,7 @@ from myvoice.audio.utterance import UtteranceRecorder
 from myvoice.audio.vad import VoiceActivityDetector
 from myvoice.commands.router import CommandRouter
 from myvoice.wakeword.detector import WakeWordDetector
+from myvoice.audio.tts import TTS
 from myvoice.agent.assistant import run_command
 from myvoice.integrations.windows_audio import (
     WindowsAudioController,
@@ -56,7 +57,7 @@ def main():
     transcriber = Transcriber(
         model_size="small.en",
     )
-
+    tts = TTS()
     print('Słucham. Powiedz "Hey Jarvis", a następnie komendę.', flush=True)
     
 
@@ -82,8 +83,9 @@ def main():
 
                 print(f"Ty: {text}")
 
-                print(f"MyVoice: {execute_command(command, command_router)}")
-
+                response = execute_command(command, command_router)
+                print(f"MyVoice: {response}")
+                tts.speak(response)
                 print("\nSłucham...")
 
     except KeyboardInterrupt:
