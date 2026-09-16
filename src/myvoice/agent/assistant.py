@@ -1,4 +1,4 @@
-from agents import Agent, Runner
+from agents import Agent, Runner, SQLiteSession, SessionSettings
 
 from myvoice.tools.spotify import play_spotify_playlist
 from myvoice.tools.browser import (
@@ -67,12 +67,17 @@ Do not ask for clarification when the intended action is reasonably clear.
         streaming_play,
     ],
 )
-
+session = SQLiteSession(
+    "myvoice_main",
+    "data/myvoice_conversation.db",
+    session_settings=SessionSettings(limit=20)
+)
 
 def run_command(command: str) -> str:
     result = Runner.run_sync(
         assistant,
         command,
+        session = session
     )
 
     return result.final_output

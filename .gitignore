@@ -38,6 +38,8 @@ AGENTS.md
 .DS_Store
 Thumbs.db
 
+data/*.db
+
 # Recordings / generated audio
 recordings/
 *.wav
